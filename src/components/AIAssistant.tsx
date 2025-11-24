@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mic, Send, Volume2, AlertCircle } from 'lucide-react';
+import { Mic, Send, Volume2, AlertCircle, Pause, Play, Square } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSpeechRecognition, useSpeechSynthesis } from '../hooks/useSpeech';
 import { askGemini } from '../services/geminiService';
@@ -18,7 +18,17 @@ export default function AIAssistant() {
 
   const { isListening, transcript, startListening, isSupported: isSpeechRecognitionSupported } =
     useSpeechRecognition();
-  const { speak, isSpeaking, isSupported: isSpeechSynthesisSupported } = useSpeechSynthesis();
+
+  // UPDATED: Using the new functions from the hook
+  const { 
+    speak, 
+    cancel, 
+    pause, 
+    resume, 
+    isSpeaking, 
+    isPaused, 
+    isSupported: isSpeechSynthesisSupported 
+  } = useSpeechSynthesis();
 
   useEffect(() => {
     if (transcript) {
@@ -82,16 +92,44 @@ export default function AIAssistant() {
                 }`}
               >
                 <p className="whitespace-pre-wrap">{message.text}</p>
+                
+                {/* --- AUDIO CONTROLS START --- */}
                 {message.sender === 'ai' && isSpeechSynthesisSupported && (
-                  <button
-                    onClick={() => speak(message.text)}
-                    disabled={isSpeaking}
-                    className="mt-2 flex items-center gap-2 text-sm text-[#2d6a4f] hover:text-[#40916c] disabled:opacity-50"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    {t.playAudio}
-                  </button>
+                  <div className="flex items-center gap-2 mt-2">
+                    {/* Play Button */}
+                    <button
+                      onClick={() => speak(message.text)}
+                      disabled={isSpeaking && !isPaused}
+                      className="flex items-center gap-1 text-sm text-[#2d6a4f] hover:text-[#40916c] disabled:opacity-50 transition-colors"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      {t.playAudio}
+                    </button>
+
+                    {/* Controls: Pause/Resume/Stop - Visible only when active */}
+                    {(isSpeaking || isPaused) && (
+                      <div className="flex items-center gap-1 pl-2 border-l-2 border-[#2d6a4f]/20">
+                        <button
+                          onClick={isPaused ? resume : pause}
+                          className="p-1 text-[#2d6a4f] hover:text-[#40916c] transition-colors rounded-full hover:bg-[#2d6a4f]/10"
+                          title={isPaused ? "Resume" : "Pause"}
+                        >
+                          {isPaused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4 fill-current" />}
+                        </button>
+
+                        <button
+                          onClick={cancel}
+                          className="p-1 text-red-600 hover:text-red-700 transition-colors rounded-full hover:bg-red-50"
+                          title="Stop"
+                        >
+                          <Square className="w-4 h-4 fill-current" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
+                {/* --- AUDIO CONTROLS END --- */}
+
               </div>
             </div>
           ))}

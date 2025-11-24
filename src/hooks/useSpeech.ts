@@ -78,39 +78,73 @@ export function useSpeechRecognition() {
   };
 }
 
+// src/hooks/useSpeech.ts
+
+// ... keep imports and useSpeechRecognition as they are ...
+
 export function useSpeechSynthesis() {
-  const { language } = useLanguage();
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+
+  useEffect(() => {
+    setIsSupported('speechSynthesis' in window);
+  }, []);
 
   const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (!isSupported) return;
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = getLanguageCode(language);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
+    // Stop any current audio before starting new
+    window.speechSynthesis.cancel();
+    setIsPaused(false);
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setIsPaused(false);
+    };
 
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const stop = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    utterance.onend = () => {
       setIsSpeaking(false);
-    }
+      setIsPaused(false);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
-  return {
-    speak,
-    stop,
-    isSpeaking,
-    isSupported: 'speechSynthesis' in window,
+  const cancel = () => {
+    if (!isSupported) return;
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setIsPaused(false);
+  };
+
+  const pause = () => {
+    if (!isSupported) return;
+    window.speechSynthesis.pause();
+    setIsPaused(true);
+  };
+
+  const resume = () => {
+    if (!isSupported) return;
+    window.speechSynthesis.resume();
+    setIsPaused(false);
+  };
+
+  return { 
+    speak, 
+    cancel, 
+    pause, 
+    resume, 
+    isSpeaking, 
+    isPaused, 
+    isSupported 
   };
 }
 
